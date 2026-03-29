@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我要验牌 (WYP) - The Ultimate Meme Token</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00ffcc;
+            --secondary-color: #ff00ff;
+            --bg-color: #0a0a0f;
+            --text-color: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        #fx-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.04) 0px,
+                rgba(255, 255, 255, 0.04) 1px,
+                rgba(0, 0, 0, 0) 3px,
+                rgba(0, 0, 0, 0) 7px
+            );
+            opacity: 0.12;
+            mix-blend-mode: overlay;
+            animation: scan-move 10s linear infinite;
+        }
+
+        @keyframes scan-move {
+            0% { transform: translateY(-40px); }
+            100% { transform: translateY(40px); }
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            width: min(38vw, 520px);
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+            filter: blur(22px);
+            opacity: 0.7;
+            transform: translateZ(0);
+        }
+
+        body::before {
+            left: 0;
+            background:
+                radial-gradient(closest-side at 40% 20%, rgba(0, 255, 204, 0.30), rgba(0, 0, 0, 0)),
+                radial-gradient(closest-side at 25% 70%, rgba(255, 0, 255, 0.22), rgba(0, 0, 0, 0));
+            animation: orb-float-left 8.5s ease-in-out infinite;
+        }
+
+        body::after {
+            right: 0;
+            background:
+                radial-gradient(closest-side at 60% 35%, rgba(255, 0, 255, 0.25), rgba(0, 0, 0, 0)),
+                radial-gradient(closest-side at 75% 80%, rgba(0, 255, 204, 0.22), rgba(0, 0, 0, 0));
+            animation: orb-float-right 9.2s ease-in-out infinite;
+        }
+
+        @keyframes orb-float-left {
+            0% { transform: translate3d(-28px, -10px, 0) scale(1); opacity: 0.62; }
+            50% { transform: translate3d(10px, 20px, 0) scale(1.05); opacity: 0.85; }
+            100% { transform: translate3d(-28px, -10px, 0) scale(1); opacity: 0.62; }
+        }
+
+        @keyframes orb-float-right {
+            0% { transform: translate3d(22px, 8px, 0) scale(1); opacity: 0.55; }
+            50% { transform: translate3d(-14px, -18px, 0) scale(1.06); opacity: 0.82; }
+            100% { transform: translate3d(22px, 8px, 0) scale(1); opacity: 0.55; }
+        }
+
+        /* 赛博朋克背景特效 */
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: 
+                linear-gradient(rgba(0, 255, 204, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            animation: grid-move 10s linear infinite;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        @keyframes grid-move {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); }
+        }
+
+        /* 顶部导航 */
+        header {
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--primary-color);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--primary-color);
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            margin-left: 30px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+
+        /* 英雄区域 (Hero Section) */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .glitch-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            position: relative;
+            text-shadow: 0.05em 0 0 var(--secondary-color), -0.025em -0.05em 0 var(--primary-color),
+                         0.025em 0.05em 0 #fff;
+            animation: glitch 1s infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 0.05em 0 0 var(--secondary-color), -0.05em -0.025em 0 var(--primary-color), -0.025em 0.05em 0 #fff; }
+            14% { text-shadow: 0.05em 0 0 var(--secondary-color), -0.05em -0.025em 0 var(--primary-color), -0.025em 0.05em 0 #fff; }
+            15% { text-shadow: -0.05em -0.025em 0 var(--secondary-color), 0.025em 0.025em 0 var(--primary-color), -0.05em -0.05em 0 #fff; }
+            49% { text-shadow: -0.05em -0.025em 0 var(--secondary-color), 0.025em 0.025em 0 var(--primary-color), -0.05em -0.05em 0 #fff; }
+            50% { text-shadow: 0.025em 0.05em 0 var(--secondary-color), 0.05em 0 0 var(--primary-color), 0 -0.05em 0 #fff; }
+            99% { text-shadow: 0.025em 0.05em 0 var(--secondary-color), 0.05em 0 0 var(--primary-color), 0 -0.05em 0 #fff; }
+            100% { text-shadow: -0.025em 0 0 var(--secondary-color), -0.025em -0.025em 0 var(--primary-color), -0.025em -0.05em 0 #fff; }
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            color: #aaaaaa;
+            max-width: 600px;
+        }
+
+        /* 按钮样式 */
+        .btn-cyber {
+            display: inline-block;
+            padding: 15px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--bg-color);
+            background-color: var(--primary-color);
+            border: none;
+            text-transform: uppercase;
+            text-decoration: none;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--primary-color);
+            transition: all 0.3s ease;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+        }
+
+        .btn-cyber:hover {
+            background-color: #fff;
+            box-shadow: 0 0 25px #fff;
+            color: var(--bg-color);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            box-shadow: none;
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(0, 255, 204, 0.1);
+            color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5) inset;
+        }
+
+        /* 合约地址复制区 */
+        .contract-box {
+            margin-top: 50px;
+            background: var(--card-bg);
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .contract-box span {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .address-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+
+        .address {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #ddd;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+        .copy-btn:hover { transform: scale(1.2); }
+
+        /* 特性/代币经济学区域 */
+        .section {
+            padding: 100px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 5;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 60px;
+            text-transform: uppercase;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 40px 30px;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 5px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 255, 204, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .feature-desc {
+            color: #aaa;
+            line-height: 1.6;
+        }
+
+        /* 路线图 */
+        .roadmap-container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .roadmap-container::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            background-color: var(--primary-color);
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            margin-left: -1px;
+        }
+
+        .roadmap-item {
+            padding: 10px 40px;
+            position: relative;
+            background-color: inherit;
+            width: 50%;
+            box-sizing: border-box;
+        }
+
+        .roadmap-item::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            right: -10px;
+            background-color: var(--bg-color);
+            border: 4px solid var(--primary-color);
+            top: 15px;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .left { left: 0; }
+        .right { left: 50%; }
+        .right::after { left: -10px; }
+
+        .roadmap-content {
+            padding: 20px 30px;
+            background-color: var(--card-bg);
+            position: relative;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .roadmap-content h3 { margin-top: 0; color: var(--secondary-color); }
+
+        /* 底部 */
+        footer {
+            background: rgba(0,0,0,0.8);
+            padding: 40px 20px;
+            text-align: center;
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .social-links {
+            margin-bottom: 20px;
+        }
+
+        .social-links a {
+            color: var(--text-color);
+            font-size: 1.5rem;
+            margin: 0 15px;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .social-links a:hover { color: var(--primary-color); }
+
+        /* 响应式调整 */
+        @media screen and (max-width: 768px) {
+            .glitch-text { font-size: 3.5rem; }
+            .nav-links { display: none; }
+            .roadmap-container::after { left: 31px; }
+            .roadmap-item { width: 100%; padding-left: 70px; padding-right: 25px; }
+            .roadmap-item::after { left: 21px; }
+            .right { left: 0; }
+            .address-container { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="fx-canvas"></canvas>
+    <div class="cyber-grid"></div>
+    <div class="scanlines"></div>
+
+    <header>
+        <div class="logo">WYP Token</div>
+        <div class="nav-links">
+            <a href="#home">首页</a>
+            <a href="#tokenomics">经济学</a>
+            <a href="#roadmap">路线图</a>
+            <a href="#community">加入社区</a>
+        </div>
+    </header>
+
+    <section id="home" class="hero">
+        <h1 class="glitch-text" data-text="我要验牌">我要验牌</h1>
+        <p class="hero-subtitle">BSC链上最具潜力的娱乐精神Meme代币。别问为什么，问就是我要验牌！🚀</p>
+        
+        <div class="btn-group">
+            <a href="https://pancakeswap.finance/swap?outputCurrency=0x42aF3D156e9b4FF1c7DEf6E6b9858744967BdE41" target="_blank" rel="noopener noreferrer" class="btn-cyber">在薄饼购买 (Buy on Pancake)</a>
+            <a href="https://x.com/wyp_token" target="_blank" rel="noopener noreferrer" class="btn-cyber btn-outline" id="twitter-link">关注官方推特 (X)</a>
+        </div>
+
+        <div class="contract-box">
+            <span>官方智能合约地址 (BSC)</span>
+            <div class="address-container">
+                <span class="address" id="contract-address">0x42aF3D156e9b4FF1c7DEf6E6b9858744967BdE41</span>
+                <button class="copy-btn" onclick="copyAddress()" title="复制地址">📋</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="tokenomics" class="section">
+        <h2 class="section-title">代币经济学 (Tokenomics)</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">💎</div>
+                <h3 class="feature-title">总供应量</h3>
+                <p class="feature-desc">10,000,000,00 (10亿枚) WYP。<br>总量恒定，无增发，保证稀缺性。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔥</div>
+                <h3 class="feature-title">燃烧机制</h3>
+                <p class="feature-desc">支持主动销毁。社区活动将定期将代币打入黑洞，制造极致通缩。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3 class="feature-title">安全透明</h3>
+                <p class="feature-desc">合约代码将在 BscScan 完全开源验证，无隐藏后门，公平交易。</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="roadmap" class="section">
+        <h2 class="section-title">路线图 (Roadmap)</h2>
+        <div class="roadmap-container">
+            <div class="roadmap-item left">
+                <div class="roadmap-content">
+                    <h3>阶段 1：部署与启航 🚀</h3>
+                    <p>- 智能合约部署于 BSC 主网<br>- PancakeSwap 添加初始流动性<br>- 官网发布与推特账号建立<br>- 启动早期社区空投</p>
+                </div>
+            </div>
+            <div class="roadmap-item right">
+                <div class="roadmap-content">
+                    <h3>阶段 2：声势浩大 📢</h3>
+                    <p>- 提交 BscScan 资料更新<br>- 登录 DexView / Dextools 行情热搜榜<br>- 推特大V互动与 Meme 病毒式传播<br>- 达到 1000+ 持币地址</p>
+                </div>
+            </div>
+            <div class="roadmap-item left">
+                <div class="roadmap-content">
+                    <h3>阶段 3：星辰大海 🌌</h3>
+                    <p>- 提交 TrustWallet 官方收录<br>- 申请 CoinMarketCap & CoinGecko<br>- 探索专属 NFT 与验牌小游戏生态<br>- 冲击万人社区规模</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer id="community">
+        <h2 style="font-family: 'Orbitron', sans-serif; color: var(--primary-color);">加入“我要验牌”大军</h2>
+        <p style="color: #aaa; margin-bottom: 30px;">This is a community-driven meme project. Do Your Own Research.</p>
+        <div class="social-links">
+            <!-- 替换为您真实的推特链接 -->
+            <a href="https://x.com/wyp_token" target="_blank" rel="noopener noreferrer" id="footer-twitter">🐦 Twitter (X)</a>
+            <a href="https://pancakeswap.finance/swap?outputCurrency=0x42aF3D156e9b4FF1c7DEf6E6b9858744967BdE41" target="_blank">🥞 PancakeSwap</a>
+            <a href="https://bscscan.com/token/0x42aF3D156e9b4FF1c7DEf6E6b9858744967BdE41" target="_blank">🔍 BscScan</a>
+        </div>
+        <p style="color: #555; font-size: 0.8rem; margin-top: 20px;">© 2026 WYP Token. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function copyAddress() {
+            const address = document.getElementById("contract-address").innerText;
+            navigator.clipboard.writeText(address).then(() => {
+                alert("合约地址已复制！\n" + address);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        }
+
+        (function () {
+            const canvas = document.getElementById("fx-canvas");
+            const ctx = canvas.getContext("2d", { alpha: true });
+            const particleCount = Math.min(120, Math.floor((window.innerWidth * window.innerHeight) / 18000));
+            const particles = [];
+            let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+            function resize() {
+                dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+                canvas.width = Math.floor(window.innerWidth * dpr);
+                canvas.height = Math.floor(window.innerHeight * dpr);
+                canvas.style.width = window.innerWidth + "px";
+                canvas.style.height = window.innerHeight + "px";
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            function rand(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function init() {
+                resize();
+                particles.length = 0;
+                for (let i = 0; i < particleCount; i += 1) {
+                    particles.push({
+                        x: rand(0, window.innerWidth),
+                        y: rand(0, window.innerHeight),
+                        vx: rand(-0.25, 0.25),
+                        vy: rand(-0.25, 0.25),
+                        r: rand(1.0, 2.2),
+                        hue: Math.random() < 0.65 ? 165 : 305
+                    });
+                }
+            }
+
+            function step() {
+                ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+                const maxDist = Math.min(160, Math.max(90, window.innerWidth / 10));
+                const maxDist2 = maxDist * maxDist;
+
+                for (let i = 0; i < particles.length; i += 1) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < -20) p.x = window.innerWidth + 20;
+                    if (p.x > window.innerWidth + 20) p.x = -20;
+                    if (p.y < -20) p.y = window.innerHeight + 20;
+                    if (p.y > window.innerHeight + 20) p.y = -20;
+
+                    ctx.beginPath();
+                    ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, 0.65)`;
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    for (let j = i + 1; j < particles.length; j += 1) {
+                        const q = particles[j];
+                        const dx = p.x - q.x;
+                        const dy = p.y - q.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 > maxDist2) continue;
+
+                        const a = 1 - d2 / maxDist2;
+                        ctx.strokeStyle = `rgba(0, 255, 204, ${0.18 * a})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(q.x, q.y);
+                        ctx.stroke();
+                    }
+                }
+
+                requestAnimationFrame(step);
+            }
+
+            window.addEventListener("resize", () => {
+                init();
+            });
+
+            init();
+            step();
+        })();
+    </script>
+</body>
+</html>
